@@ -1,0 +1,62 @@
+name: Build sd-forge-neo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'sd-forge/**'
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * 1'  # Every Monday 04:00 UTC
+
+jobs:
+  check-upstream:
+    runs-on: [self-hosted, unraid]
+    outputs:
+      latest_tag: ${{ steps.upstream.outputs.tag }}
+      changed: ${{ steps.compare.outputs.changed }}
+    steps:
+      - name: Get latest upstream release
+        id: upstream
+        run: |
+          TAG=$(curl -s https://api.github.com/repos/Haoming02/sd-webui-forge-classic/releases/latest | jq -r .tag_name)
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Upstream latest: $TAG"
+
+      - name: Compare with last built version
+        id: compare
+        run: |
+          LAST=$(cat /runner/persistent_files/sdforge-last-built 2>/dev/null || echo "none")
+          LATEST="${{ steps.upstream.outputs.tag }}"
+          echo "Last built: $LAST"
+          if [ "$LATEST" != "$LAST" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+  build:
+    needs: check-upstream
+    if: needs.check-upstream.outputs.changed == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    runs-on: [self-hosted, unraid]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./sd-forge
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/sd-forge-neo:latest
+            ghcr.io/${{ github.repository_owner }}/sd-forge-neo:${{ needs.check-upstream.outputs.latest_tag }}
+
+      - name: Record built version
+        run: echo "${{ needs.check-upstream.outputs.latest_tag }}" > /runner/persistent_files/sdforge-last-built
