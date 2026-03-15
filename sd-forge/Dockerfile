@@ -2,7 +2,6 @@ FROM python:3.13-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV NVIDIA_VISIBLE_DEVICES=all
-ENV PYTHON=/usr/local/bin/python3
 ENV COMMANDLINE_ARGS=
 
 # ── System deps ───────────────────────────────────────────────────────────────
