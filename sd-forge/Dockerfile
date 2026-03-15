@@ -1,4 +1,4 @@
-FROM debian:bookworm-slim
+FROM python:3.13-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV NVIDIA_VISIBLE_DEVICES=all
@@ -7,8 +7,6 @@ ENV COMMANDLINE_ARGS=
 
 # ── System deps ───────────────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y \
-    python3.13 \
-    python3.13-venv \
     git \
     ffmpeg \
     curl \
