@@ -2,7 +2,7 @@ FROM python:3.13-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV NVIDIA_VISIBLE_DEVICES=all
-ENV PYTHON=/home/forge/sd-webui/venv/bin/python
+ENV PYTHON=/usr/local/bin/python3
 ENV COMMANDLINE_ARGS=
 
 # ── System deps ───────────────────────────────────────────────────────────────
@@ -27,13 +27,13 @@ RUN git clone --branch neo --depth 1 \
 
 WORKDIR /home/forge/sd-webui
 
-# ── Set up venv ───────────────────────────────────────────────────────────────
-RUN uv venv venv --python python3.13 --seed
 
-RUN chown -R forge:users /home/forge
+COPY entrypoint.sh /home/forge/sd-webui/entrypoint.sh
+RUN chown -R forge:users /home/forge \
+ && chmod +x /home/forge/sd-webui/entrypoint.sh
 
 USER forge
 
 EXPOSE 7860/tcp
 
-CMD ["sh", "-c", "/home/forge/sd-webui/venv/bin/python launch.py --listen $COMMANDLINE_ARGS"]
+CMD ["sh", "-c", "python3 launch.py --listen --uv $COMMANDLINE_ARGS"]
