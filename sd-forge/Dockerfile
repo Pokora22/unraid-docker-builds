@@ -35,4 +35,4 @@ USER forge
 
 EXPOSE 7860/tcp
 
-CMD ["sh", "-c", "python3 launch.py --listen --uv $COMMANDLINE_ARGS"]
+CMD ["/home/forge/sd-webui/entrypoint.sh"]
