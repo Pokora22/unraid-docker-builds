@@ -1,0 +1,60 @@
+name: Build textgen-base
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * 1'  # Every Monday 04:00 UTC
+
+jobs:
+  check-upstream:
+    runs-on: [self-hosted, unraid]
+    outputs:
+      latest_tag: ${{ steps.upstream.outputs.tag }}
+      changed: ${{ steps.compare.outputs.changed }}
+    steps:
+      - name: Get latest upstream release
+        id: upstream
+        run: |
+          TAG=$(curl -s https://api.github.com/repos/oobabooga/text-generation-webui/releases/latest | jq -r .tag_name)
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Upstream latest: $TAG"
+
+      - name: Compare with last built version
+        id: compare
+        run: |
+          LAST=$(cat /runner/persistent_files/textgen-base-last-built 2>/dev/null || echo "none")
+          LATEST="${{ steps.upstream.outputs.tag }}"
+          echo "Last built: $LAST"
+          if [ "$LATEST" != "$LAST" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+  build:
+    needs: check-upstream
+    if: needs.check-upstream.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: [self-hosted, unraid]
+    steps:
+      - name: Clone ooba at latest tag
+        run: |
+          rm -rf /tmp/textgen-base
+          git clone --depth 1 --branch ${{ needs.check-upstream.outputs.latest_tag }} https://github.com/oobabooga/text-generation-webui /tmp/textgen-base
+
+      - name: Build and push
+        run: |
+          docker build -f /tmp/textgen-base/docker/nvidia/Dockerfile \
+            -t 192.168.1.111:5555/textgen-base:latest \
+            -t 192.168.1.111:5555/textgen-base:${{ needs.check-upstream.outputs.latest_tag }} \
+            /tmp/textgen-base
+          docker push 192.168.1.111:5555/textgen-base:latest
+          docker push 192.168.1.111:5555/textgen-base:${{ needs.check-upstream.outputs.latest_tag }}
+
+      - name: Cleanup
+        run: rm -rf /tmp/textgen-base
+
+      - name: Record built version
+        run: echo "${{ needs.check-upstream.outputs.latest_tag }}" > /runner/persistent_files/textgen-base-last-built
