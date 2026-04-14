@@ -1,0 +1,15 @@
+name: Build soulmask-discord-bot
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: [self-hosted, unraid]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build and push
+        run: |
+          docker build -t 192.168.1.111:5555/unraid-server-discord-bot:latest game-server-controller/
+          docker push 192.168.1.111:5555/unraid-server-discord-bot:latest
