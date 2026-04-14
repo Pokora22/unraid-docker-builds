@@ -11,6 +11,8 @@ intents = discord.Intents.default()
 client  = discord.Client(intents=intents)
 tree    = app_commands.CommandTree(client)
 guild   = discord.Object(id=GUILD_ID)
+unraid  = app_commands.Group(name="unraid", description="Manage Unraid containers", guild_ids=[GUILD_ID])
+tree.add_command(unraid)
 
 
 async def run_docker(*args):
@@ -39,7 +41,7 @@ def unknown_container_msg(container: str) -> str:
     return f"`{container}` is not in the allowed container list."
 
 
-@tree.command(name="start", description="Start a container", guild=guild)
+@unraid.command(name="start", description="Start a container")
 @app_commands.autocomplete(container=container_autocomplete)
 async def start_cmd(interaction: discord.Interaction, container: str):
     if container not in CONTAINERS:
@@ -55,7 +57,7 @@ async def start_cmd(interaction: discord.Interaction, container: str):
     )
 
 
-@tree.command(name="stop", description="Stop a container", guild=guild)
+@unraid.command(name="stop", description="Stop a container")
 @app_commands.autocomplete(container=container_autocomplete)
 async def stop_cmd(interaction: discord.Interaction, container: str):
     if container not in CONTAINERS:
@@ -71,7 +73,7 @@ async def stop_cmd(interaction: discord.Interaction, container: str):
     )
 
 
-@tree.command(name="restart", description="Restart a container", guild=guild)
+@unraid.command(name="restart", description="Restart a container")
 @app_commands.autocomplete(container=container_autocomplete)
 async def restart_cmd(interaction: discord.Interaction, container: str):
     if container not in CONTAINERS:
